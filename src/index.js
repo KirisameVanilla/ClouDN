@@ -14,17 +14,29 @@ const DIFFICULTY_MAP = {
 // 处理 /preview/{id}/{difficulty} 路由
 async function handlePreview(id, difficulty) {
   try {
-    // 1. 从 taiko.wiki API 获取歌曲信息
-    const apiUrl = `https://taiko.wiki/api/song/no/${id}`
-    const apiResponse = await fetch(apiUrl)
+    // 1. 从 taiko.wiki API 获取所有歌曲信息并缓存
+    const apiUrl = `https://taiko.wiki/api/song`
+    const apiResponse = await fetch(apiUrl, {
+      cf: {
+        cacheEverything: true,
+        cacheTtl: 3600, // 缓存1小时
+      },
+    })
     
     if (!apiResponse.ok) {
-      return new Response(`Song ${id}-${difficulty} Not Found`, { status: 404 })
+      return new Response(`Failed to fetch song list`, { status: 500 })
     }
 
-    const songData = await apiResponse.json()
+    const allSongs = await apiResponse.json()
     
-    // 2. 获取 courses 对象
+    // 2. 在数组中找到 songNo 等于 id 的歌曲（songNo 是字符串）
+    const songData = allSongs.find(song => song.songNo === id)
+    
+    if (!songData) {
+      return new Response(`Song ${id}-${difficulty} Not Found`, { status: 404 })
+    }
+    
+    // 3. 获取 courses 对象
     const courses = songData.courses
     if (!courses) {
       return new Response(`Courses for Song ${id}-${difficulty} Not Found`, { status: 404 })
