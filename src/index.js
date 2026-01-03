@@ -19,7 +19,7 @@ async function handlePreview(id, difficulty) {
     const apiResponse = await fetch(apiUrl)
     
     if (!apiResponse.ok) {
-      return new Response("Song Not Found", { status: 404 })
+      return new Response(`Song ${id}-${difficulty} Not Found`, { status: 404 })
     }
 
     const songData = await apiResponse.json()
@@ -27,19 +27,19 @@ async function handlePreview(id, difficulty) {
     // 2. 获取 courses 对象
     const courses = songData.courses
     if (!courses) {
-      return new Response("Courses Not Found", { status: 404 })
+      return new Response(`Courses for Song ${id}-${difficulty} Not Found`, { status: 404 })
     }
 
     // 3. 映射 difficulty 到对应字段名
     const courseKey = DIFFICULTY_MAP[difficulty]
     if (!courseKey) {
-      return new Response("Invalid Difficulty", { status: 400 })
+      return new Response(`Invalid Difficulty for Song ${id}-${difficulty}`, { status: 400 })
     }
 
     // 4. 获取对应难度的 course 数据
     const course = courses[courseKey]
     if (!course || !course.images || course.images.length === 0) {
-      return new Response("Image Not Found", { status: 404 })
+      return new Response(`Image for Song ${id}-${difficulty} Not Found`, { status: 404 })
     }
 
     // 5. 获取 images 数组的第一项
@@ -54,7 +54,7 @@ async function handlePreview(id, difficulty) {
     })
 
     if (!upstream.ok) {
-      return new Response("Image Fetch Failed", { status: 404 })
+      return new Response(`Image Fetch Failed for Song ${id}-${difficulty}`, { status: 404 })
     }
 
     const headers = new Headers(upstream.headers)
