@@ -91,7 +91,37 @@ async function handlePreviewImage(id, filename) {
 async function handleFileMap(pathname) {
   const targetUrl = FILE_MAP[pathname]
   if (!targetUrl) {
-    return new Response("Not Found", { status: 404 })
+    // 如果没有匹配的 CDN 路由，返回一个 HTML 页面，列出所有可用的接口
+    const available = Object.keys(FILE_MAP || {})
+    const listItems = available.map(p => `<li><a href="${p}">${p}</a></li>`).join('')
+    const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Available APIs</title>
+    <style>body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:32px}a{color:#0366d6}</style>
+  </head>
+  <body>
+    <h1>Available APIs</h1>
+    <p>可用的 CDN 路由（点击访问）：</p>
+    <ul>
+      ${listItems}
+    </ul>
+    <h2>Preview Routes</h2>
+    <ul>
+      <li><code>/api/preview/{id}</code> — 获取指定 ID 的预览数据</li>
+      <li><code>/api/preview/{id}/{filename}</code> — 获取指定预览图片</li>
+    </ul>
+  </body>
+</html>`
+
+    const headers = new Headers()
+    applyCors(headers)
+    headers.set("Content-Type", "text/html; charset=utf-8")
+    headers.set("Cache-Control", "no-cache")
+
+    return new Response(html, { status: 200, headers })
   }
 
   // 向 GitHub Raw 拉取文件
