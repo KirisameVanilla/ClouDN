@@ -140,6 +140,11 @@ async function handleFileMap(pathname) {
   const headers = new Headers(upstream.headers)
   applyCors(headers)
 
+  // 修正 GitHub Raw 对 JSON 文件错误返回 text/plain 的问题
+  if (targetUrl.endsWith('.json')) {
+    headers.set("Content-Type", "application/json; charset=utf-8")
+  }
+
   // 强制 CDN 可缓存
   headers.set("Cache-Control", "public, max-age=3600")
 
