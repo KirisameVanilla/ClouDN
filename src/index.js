@@ -32,10 +32,10 @@ async function handlePreviewById(id) {
     }
 
     const previewsJson = await response.json()
-    
+
     // 从 JSON 中获取指定 ID 的数据
     const previewData = previewsJson[id]
-    
+
     if (!previewData) {
       return new Response(`Preview data for ID ${id} not found`, { status: 404 })
     }
@@ -59,8 +59,8 @@ async function handlePreviewById(id) {
 async function handlePreviewImage(id, filename) {
   try {
     // 构建 GitHub raw URL
-    const imageUrl = `https://raw.githubusercontent.com/KirisameVanilla/chart-preview-database/refs/heads/main/charts/${id}/${filename}`
-    
+    const imageUrl = `https://raw.githubusercontent.com/ourtaiko/chart-preview-database/refs/heads/main/charts/${id}/${filename}`
+
     // 获取图片并缓存
     const upstream = await fetch(imageUrl, {
       cf: {
