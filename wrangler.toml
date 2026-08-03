@@ -5,7 +5,6 @@ compatibility_date = "2026-01-01"
 [vars.FILE_MAP]
 "/api/cnsongs" = "https://raw.githubusercontent.com/KirisameVanilla/taiko-song-database-cn/refs/heads/main/songs.json"
 "/api/fumendb_constants" = "https://raw.githubusercontent.com/ourtaiko/fumen-database-scraper/refs/heads/main/songs.json"
-"/api/constants" = "https://raw.githubusercontent.com/OurTaiko/Constants/refs/heads/main/constants.json"
 "/api/previews" = "https://raw.githubusercontent.com/ourtaiko/chart-preview-database/refs/heads/main/previews.json"
 "/api/difficulty_chart/10/fc" = "https://raw.githubusercontent.com/KirisameVanilla/difficulty-chart-database/refs/heads/main/10fc.json"
 "/api/ese_mapping" = "https://raw.githubusercontent.com/OurTaiko/ese-mapping-to-nijiiroid/refs/heads/main/data.json"

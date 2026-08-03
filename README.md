@@ -7,7 +7,6 @@
 
 - [/api/cnsongs](https://cdn.ourtaiko.org/api/cnsongs)
 - [/api/fumendb_constants](https://cdn.ourtaiko.org/api/fumendb_constants)
-- [/api/constants](https://cdn.ourtaiko.org/api/constants)
 - [/api/gugu_constants](https://cdn.ourtaiko.org/api/gugu_constants)
 - [/api/previews](https://cdn.ourtaiko.org/api/previews)
 - [/api/preview/\${id}](https://cdn.ourtaiko.org/api/preview/495)
