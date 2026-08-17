@@ -1,6 +1,40 @@
 import { env } from "cloudflare:workers";
 
 const FILE_MAP = env.FILE_MAP
+const PREVIEW_IMAGE_BASES = env.PREVIEW_IMAGE_BASES
+
+function normalizeSources(configuredSources) {
+  if (Array.isArray(configuredSources)) {
+    return configuredSources.filter(source => typeof source === 'string' && source.length > 0)
+  }
+
+  return typeof configuredSources === 'string' && configuredSources.length > 0
+    ? [configuredSources]
+    : []
+}
+
+async function fetchFirstAvailable(configuredSources) {
+  for (const sourceUrl of normalizeSources(configuredSources)) {
+    try {
+      const response = await fetch(sourceUrl, {
+        cf: {
+          cacheEverything: true,
+          cacheTtl: 3600,
+        },
+      })
+
+      if (response.status === 200) {
+        return { response, sourceUrl }
+      }
+
+      await response.body?.cancel()
+    } catch {
+      // 当前来源不可用时继续尝试下一个来源。
+    }
+  }
+
+  return null
+}
 
 // difficulty 数字到字段名的映射
 const DIFFICULTY_MAP = {
@@ -15,23 +49,17 @@ const DIFFICULTY_MAP = {
 async function handlePreviewById(id) {
   try {
     // 从 /api/previews 获取完整的预览数据库
-    const previewsUrl = FILE_MAP['/api/previews']
-    if (!previewsUrl) {
+    const previewSources = FILE_MAP['/api/previews']
+    if (normalizeSources(previewSources).length === 0) {
       return new Response("Previews database not configured", { status: 500 })
     }
 
-    const response = await fetch(previewsUrl, {
-      cf: {
-        cacheEverything: true,
-        cacheTtl: 3600, // 缓存1小时
-      },
-    })
-
-    if (!response.ok) {
+    const upstream = await fetchFirstAvailable(previewSources)
+    if (!upstream) {
       return new Response("Failed to fetch previews database", { status: 500 })
     }
 
-    const previewsJson = await response.json()
+    const previewsJson = await upstream.response.json()
 
     // 从 JSON 中获取指定 ID 的数据
     const previewData = previewsJson[id]
@@ -58,20 +86,14 @@ async function handlePreviewById(id) {
 // 处理 /api/preview/{id}/{filename} 路由 - 从 GitHub 获取图片
 async function handlePreviewImage(id, filename) {
   try {
-    // 构建 GitHub raw URL
-    const imageUrl = `https://raw.githubusercontent.com/ourtaiko/chart-preview-database/refs/heads/main/charts/${id}/${filename}`
+    const imageSources = normalizeSources(PREVIEW_IMAGE_BASES)
+      .map(baseUrl => `${baseUrl.replace(/\/$/, '')}/${id}/${filename}`)
+    const result = await fetchFirstAvailable(imageSources)
 
-    // 获取图片并缓存
-    const upstream = await fetch(imageUrl, {
-      cf: {
-        cacheEverything: true,
-        cacheTtl: 3600, // 缓存1小时
-      },
-    })
-
-    if (!upstream.ok) {
+    if (!result) {
       return new Response(`Image not found: ${id}/${filename}`, { status: 404 })
     }
+    const { response: upstream } = result
 
     // 复制响应头并注入 CORS
     const headers = new Headers(upstream.headers)
@@ -89,8 +111,8 @@ async function handlePreviewImage(id, filename) {
 
 // 处理 FILE_MAP 映射路由
 async function handleFileMap(pathname) {
-  const targetUrl = FILE_MAP[pathname]
-  if (!targetUrl) {
+  const configuredSources = FILE_MAP[pathname]
+  if (!configuredSources) {
     // 如果没有匹配的 CDN 路由，返回一个 HTML 页面，列出所有可用的接口
     const available = Object.keys(FILE_MAP || {})
     const listItems = available.map(p => `<li><a href="${p}">${p}</a></li>`).join('')
@@ -124,24 +146,18 @@ async function handleFileMap(pathname) {
     return new Response(html, { status: 200, headers })
   }
 
-  // 向 GitHub Raw 拉取文件
-  const upstream = await fetch(targetUrl, {
-    cf: {
-      cacheEverything: true,
-      cacheTtl: 3600, // 1 小时 CDN 缓存
-    },
-  })
-
-  if (!upstream.ok) {
+  const result = await fetchFirstAvailable(configuredSources)
+  if (!result) {
     return new Response("Upstream Not Found", { status: 404 })
   }
+  const { response: upstream, sourceUrl } = result
 
   // 复制响应头并注入 CORS
   const headers = new Headers(upstream.headers)
   applyCors(headers)
 
   // 修正 GitHub Raw 对 JSON 文件错误返回 text/plain 的问题
-  if (targetUrl.endsWith('.json')) {
+  if (sourceUrl.endsWith('.json')) {
     headers.set("Content-Type", "application/json; charset=utf-8")
   }
 
